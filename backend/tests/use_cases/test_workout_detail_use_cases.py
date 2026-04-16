@@ -89,3 +89,34 @@ async def test_update_workout_log_preserves_id(use_cases, mock_uow, sample_log):
     mock_uow.workout_logs.save = capture_save
     await use_cases.update_workout_log(_update_input())
     assert saved_logs[0].id == LOG_ID
+
+
+from smart_pace.domain.enums import SessionStatus
+
+
+async def test_delete_workout_log_reverts_session(use_cases, mock_uow, sample_session):
+    saved_sessions = []
+
+    async def capture_session_save(s):
+        saved_sessions.append(s)
+
+    mock_uow.workout_sessions.save = capture_session_save
+    await use_cases.delete_workout_log(DeleteWorkoutLogInput(log_id=LOG_ID, user_id=USER_ID))
+    assert saved_sessions[0].status == SessionStatus.SCHEDULED
+
+
+async def test_delete_workout_log_calls_delete(use_cases, mock_uow):
+    deleted_ids = []
+
+    async def capture_delete(lid):
+        deleted_ids.append(lid)
+
+    mock_uow.workout_logs.delete = capture_delete
+    await use_cases.delete_workout_log(DeleteWorkoutLogInput(log_id=LOG_ID, user_id=USER_ID))
+    assert LOG_ID in deleted_ids
+
+
+async def test_delete_workout_log_not_found_raises(use_cases, mock_uow):
+    mock_uow.workout_logs.find_by_id = AsyncMock(return_value=None)
+    with pytest.raises(EntityNotFoundException):
+        await use_cases.delete_workout_log(DeleteWorkoutLogInput(log_id=LOG_ID, user_id=USER_ID))

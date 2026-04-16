@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import timedelta
 
 from smart_pace.application.dtos.workout import (
+    DeleteWorkoutLogInput,
     GetNextWorkoutSuggestionInput,
     GetWorkoutLogInput,
     LogWorkoutInput,
@@ -265,6 +266,28 @@ class WorkoutUseCases:
             session_type = session.session_type.value if session else "easy_run"
 
         return _build_workout_log_output(updated_log, session_type)
+
+    async def delete_workout_log(self, input_data: DeleteWorkoutLogInput) -> None:
+        """Remove log e reverte sessão associada para scheduled."""
+        async with self.unit_of_work() as uow:
+            log = await uow.workout_logs.find_by_id(input_data.log_id)
+            if log is None:
+                raise EntityNotFoundException("Workout log not found")
+
+            profile = await uow.athlete_profiles.find_by_id(log.athlete_profile_id)
+            if profile is None:
+                raise EntityNotFoundException("Athlete profile not found")
+
+            ensure_profile_ownership(profile, input_data.user_id)
+
+            session = await uow.workout_sessions.find_by_id(log.workout_session_id)
+            if session is not None:
+                session.revert_to_scheduled()
+                await uow.workout_sessions.save(session)
+
+            await uow.workout_logs.delete(log.id)
+            await self._recalculate_performance_metrics(uow, profile)
+            await uow.commit()
 
     async def get_next_suggestion(
         self, input_data: GetNextWorkoutSuggestionInput
