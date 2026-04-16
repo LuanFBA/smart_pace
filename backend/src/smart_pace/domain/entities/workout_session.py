@@ -43,5 +43,8 @@ class WorkoutSession:
     def mark_skipped(self) -> None:
         self.status = SessionStatus.SKIPPED
 
+    def revert_to_scheduled(self) -> None:
+        self.status = SessionStatus.SCHEDULED
+
     def is_completed(self) -> bool:
         return self.status == SessionStatus.COMPLETED
