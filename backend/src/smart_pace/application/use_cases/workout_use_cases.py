@@ -8,6 +8,7 @@ from smart_pace.application.dtos.workout import (
     GetWorkoutLogInput,
     LogWorkoutInput,
     ScheduleWorkoutSessionInput,
+    UpdateWorkoutLogInput,
     ViewWorkoutHistoryInput,
     WorkoutHistoryOutput,
     WorkoutLogOutput,
@@ -215,6 +216,55 @@ class WorkoutUseCases:
             session_type = session.session_type.value if session else "easy_run"
 
         return _build_workout_log_output(log, session_type)
+
+    async def update_workout_log(self, input_data: UpdateWorkoutLogInput) -> WorkoutLogOutput:
+        """Substitui todos os campos editáveis do log, recalculando pace."""
+        async with self.unit_of_work() as uow:
+            existing = await uow.workout_logs.find_by_id(input_data.log_id)
+            if existing is None:
+                raise EntityNotFoundException("Workout log not found")
+
+            profile = await uow.athlete_profiles.find_by_id(existing.athlete_profile_id)
+            if profile is None:
+                raise EntityNotFoundException("Athlete profile not found")
+
+            ensure_profile_ownership(profile, input_data.user_id)
+
+            average_heart_rate = (
+                HeartRate(input_data.average_heart_rate)
+                if input_data.average_heart_rate is not None
+                else None
+            )
+            maximum_heart_rate = (
+                HeartRate(input_data.maximum_heart_rate)
+                if input_data.maximum_heart_rate is not None
+                else None
+            )
+
+            updated_log = WorkoutLog.create_with_calculated_pace(
+                workout_session_id=existing.workout_session_id,
+                athlete_profile_id=existing.athlete_profile_id,
+                started_at=input_data.started_at,
+                finished_at=input_data.finished_at,
+                actual_distance=Distance(input_data.actual_distance_meters),
+                actual_duration=Duration(input_data.actual_duration_seconds),
+                average_heart_rate=average_heart_rate,
+                maximum_heart_rate=maximum_heart_rate,
+                perceived_exertion=input_data.perceived_exertion,
+                notes=input_data.notes,
+                average_power_watts=input_data.average_power_watts,
+            )
+            # Preserva o id original para que o save faça UPDATE e não INSERT
+            updated_log.id = existing.id
+
+            await uow.workout_logs.save(updated_log)
+            await self._recalculate_performance_metrics(uow, profile)
+            await uow.commit()
+
+            session = await uow.workout_sessions.find_by_id(existing.workout_session_id)
+            session_type = session.session_type.value if session else "easy_run"
+
+        return _build_workout_log_output(updated_log, session_type)
 
     async def get_next_suggestion(
         self, input_data: GetNextWorkoutSuggestionInput
