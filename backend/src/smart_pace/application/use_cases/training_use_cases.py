@@ -6,6 +6,8 @@ from smart_pace.application.dtos.training_plan import (
     ActivateTrainingPlanInput,
     CancelTrainingPlanInput,
     CreateTrainingPlanInput,
+    GetTrainingPlanInput,
+    ListTrainingPlansInput,
     TrainingPlanOutput,
 )
 from smart_pace.application.ports.unit_of_work import UnitOfWork
@@ -86,6 +88,40 @@ class TrainingUseCases:
 
         return _build_training_plan_output(plan)
 
+    async def list_plans(
+        self, input_data: ListTrainingPlansInput
+    ) -> list[TrainingPlanOutput]:
+        """UC14 — Listar planos de treino do atleta."""
+        async with self.unit_of_work() as uow:
+            profile = await uow.athlete_profiles.find_by_id(
+                input_data.athlete_profile_id
+            )
+            if profile is None:
+                raise EntityNotFoundException("Athlete profile not found")
+
+            ensure_profile_ownership(profile, input_data.user_id)
+
+            plans = await uow.training_plans.find_by_athlete_profile_id(
+                input_data.athlete_profile_id
+            )
+
+        return [_build_training_plan_output(plan) for plan in plans]
+
+    async def get_plan(self, input_data: GetTrainingPlanInput) -> TrainingPlanOutput:
+        """UC15 — Consultar plano de treino específico."""
+        async with self.unit_of_work() as uow:
+            plan = await uow.training_plans.find_by_id(input_data.plan_id)
+            if plan is None:
+                raise EntityNotFoundException("Training plan not found")
+
+            profile = await uow.athlete_profiles.find_by_id(plan.athlete_profile_id)
+            if profile is None:
+                raise EntityNotFoundException("Athlete profile not found")
+
+            ensure_profile_ownership(profile, input_data.user_id)
+
+        return _build_training_plan_output(plan)
+
 
 def _build_training_plan_output(plan: TrainingPlan) -> TrainingPlanOutput:
     """Mapeia entidade TrainingPlan para DTO de saída."""
@@ -96,7 +132,7 @@ def _build_training_plan_output(plan: TrainingPlan) -> TrainingPlanOutput:
         goal_description=plan.goal_description,
         start_date=plan.start_date,
         end_date=plan.end_date,
-        sport_type=plan.sport_type,
-        status=plan.status,
+        sport_type=plan.sport_type.value,
+        status=plan.status.value,
         duration_in_weeks=plan.duration_in_weeks(),
     )

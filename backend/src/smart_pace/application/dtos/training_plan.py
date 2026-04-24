@@ -34,6 +34,20 @@ class CancelTrainingPlanInput(BaseModel):
     user_id: UUID
 
 
+class ListTrainingPlansInput(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    athlete_profile_id: UUID
+    user_id: UUID
+
+
+class GetTrainingPlanInput(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    plan_id: UUID
+    user_id: UUID
+
+
 class TrainingPlanOutput(BaseModel):
     model_config = ConfigDict(frozen=True)
 

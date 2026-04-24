@@ -22,10 +22,10 @@ class User:
         if not self.full_name.strip():
             raise InvalidDataException("full_name cannot be empty")
 
-    def deactivate(self) -> None:
+    def deactivate(self, now: datetime) -> None:
         self.is_active = False
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = now
 
-    def change_email(self, new_email: EmailAddress) -> None:
+    def change_email(self, new_email: EmailAddress, now: datetime) -> None:
         self.email = new_email
-        self.updated_at = datetime.now(UTC)
+        self.updated_at = now

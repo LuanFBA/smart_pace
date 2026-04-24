@@ -10,8 +10,8 @@ class Duration:
     seconds: int
 
     def __post_init__(self) -> None:
-        if self.seconds < 0:
-            raise ValueError("Duration cannot be negative")
+        if self.seconds <= 0:
+            raise ValueError("Duration must be positive")
 
     @classmethod
     def from_hms(cls, hours: int, minutes: int, seconds: int) -> Duration:

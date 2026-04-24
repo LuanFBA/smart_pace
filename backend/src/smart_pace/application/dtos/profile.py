@@ -8,6 +8,12 @@ from pydantic import BaseModel, ConfigDict
 from smart_pace.domain.enums import SportType
 
 
+class GetProfileByUserIdInput(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    user_id: UUID
+
+
 class CreateAthleteProfileInput(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -60,3 +66,9 @@ class AthleteProfileOutput(BaseModel):
     training_experience_years: int
     weekly_target_hours: float
     heart_rate_zones: list[HeartRateZoneOutput]
+
+
+class MyProfileOutput(AthleteProfileOutput):
+    """Perfil do atleta autenticado enriquecido com o nome do usuário."""
+
+    user_full_name: str

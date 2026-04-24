@@ -5,13 +5,14 @@ from collections.abc import Callable
 from smart_pace.application.dtos.profile import (
     AthleteProfileOutput,
     CreateAthleteProfileInput,
+    GetProfileByUserIdInput,
     HeartRateZoneOutput,
+    MyProfileOutput,
     UpdateHeartRateDataInput,
     ViewHeartRateZonesInput,
 )
 from smart_pace.application.ports.unit_of_work import UnitOfWork
 from smart_pace.application.use_cases._helpers import (
-    build_athlete_profile_output,
     build_heart_rate_zones_output,
     ensure_profile_ownership,
 )
@@ -27,6 +28,37 @@ from smart_pace.domain.value_objects.vo2max import Vo2max
 class ProfileUseCases:
     def __init__(self, unit_of_work: Callable[[], UnitOfWork]) -> None:
         self.unit_of_work = unit_of_work
+
+    async def get_profile_by_user_id(
+        self, input_data: GetProfileByUserIdInput
+    ) -> AthleteProfileOutput:
+        """UC5b — Consultar perfil do atleta por user_id."""
+        async with self.unit_of_work() as uow:
+            profile = await uow.athlete_profiles.find_by_user_id(input_data.user_id)
+            if profile is None:
+                raise EntityNotFoundException("Athlete profile not found")
+
+        zones = build_heart_rate_zones_output(profile)
+        return _build_athlete_profile_output(profile, zones)
+
+    async def get_my_profile(
+        self, input_data: GetProfileByUserIdInput
+    ) -> MyProfileOutput:
+        """UC5c — Consultar perfil do atleta autenticado + nome do usuário."""
+        async with self.unit_of_work() as uow:
+            profile = await uow.athlete_profiles.find_by_user_id(input_data.user_id)
+            if profile is None:
+                raise EntityNotFoundException("Athlete profile not found")
+            user = await uow.users.find_by_id(input_data.user_id)
+            if user is None:
+                raise EntityNotFoundException("User not found")
+
+        zones = build_heart_rate_zones_output(profile)
+        base = _build_athlete_profile_output(profile, zones)
+        return MyProfileOutput(
+            **base.model_dump(),
+            user_full_name=user.full_name,
+        )
 
     async def create_profile(
         self, input_data: CreateAthleteProfileInput
@@ -66,7 +98,7 @@ class ProfileUseCases:
             await uow.commit()
 
         zones = build_heart_rate_zones_output(profile)
-        return build_athlete_profile_output(profile, zones)
+        return _build_athlete_profile_output(profile, zones)
 
     async def update_heart_rate(
         self, input_data: UpdateHeartRateDataInput
@@ -89,7 +121,7 @@ class ProfileUseCases:
             await uow.commit()
 
         zones = build_heart_rate_zones_output(profile)
-        return build_athlete_profile_output(profile, zones)
+        return _build_athlete_profile_output(profile, zones)
 
     async def view_heart_rate_zones(
         self, input_data: ViewHeartRateZonesInput
@@ -105,3 +137,24 @@ class ProfileUseCases:
             ensure_profile_ownership(profile, input_data.user_id)
 
         return build_heart_rate_zones_output(profile)
+
+
+def _build_athlete_profile_output(
+    profile: AthleteProfile, zones: list[HeartRateZoneOutput]
+) -> AthleteProfileOutput:
+    """Mapeia entidade AthleteProfile para DTO de saída."""
+    return AthleteProfileOutput(
+        id=profile.id,
+        user_id=profile.user_id,
+        sport_type=profile.sport_type.value,
+        date_of_birth=profile.date_of_birth,
+        resting_heart_rate=profile.resting_heart_rate.beats_per_minute,
+        maximum_heart_rate=profile.maximum_heart_rate.beats_per_minute,
+        functional_threshold_power=profile.functional_threshold_power,
+        current_vo2max=(
+            profile.current_vo2max.value if profile.current_vo2max else None
+        ),
+        training_experience_years=profile.training_experience_years,
+        weekly_target_hours=profile.weekly_target_hours,
+        heart_rate_zones=zones,
+    )

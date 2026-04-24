@@ -10,8 +10,8 @@ class Distance:
     meters: int
 
     def __post_init__(self) -> None:
-        if self.meters < 0:
-            raise ValueError("Distance cannot be negative")
+        if self.meters <= 0:
+            raise ValueError("Distance must be positive")
 
     @classmethod
     def from_kilometers(cls, kilometers: float) -> Distance:

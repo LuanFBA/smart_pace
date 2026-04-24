@@ -25,6 +25,7 @@ class WorkoutLog:
     maximum_heart_rate: HeartRate | None = None
     perceived_exertion: int | None = None  # RPE 1-10
     notes: str | None = None
+    average_power_watts: int | None = None  # Potência média — exclusivo para ciclismo
 
     def __post_init__(self) -> None:
         if self.finished_at <= self.started_at:
@@ -34,6 +35,8 @@ class WorkoutLog:
                 raise InvalidDataException(
                     "perceived_exertion must be between 1 and 10"
                 )
+        if self.average_power_watts is not None and self.average_power_watts <= 0:
+            raise InvalidDataException("average_power_watts must be positive")
         if self.average_heart_rate and self.maximum_heart_rate:
             if (
                 self.average_heart_rate.beats_per_minute

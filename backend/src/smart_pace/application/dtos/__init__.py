@@ -13,6 +13,7 @@ from smart_pace.application.dtos.metrics import (
 from smart_pace.application.dtos.profile import (
     AthleteProfileOutput,
     CreateAthleteProfileInput,
+    GetProfileByUserIdInput,
     HeartRateZoneOutput,
     UpdateHeartRateDataInput,
     ViewHeartRateZonesInput,
@@ -21,14 +22,18 @@ from smart_pace.application.dtos.training_plan import (
     ActivateTrainingPlanInput,
     CancelTrainingPlanInput,
     CreateTrainingPlanInput,
+    GetTrainingPlanInput,
+    ListTrainingPlansInput,
     TrainingPlanOutput,
 )
 from smart_pace.application.dtos.workout import (
     GetNextWorkoutSuggestionInput,
     LogWorkoutInput,
+    ScheduleWorkoutSessionInput,
     ViewWorkoutHistoryInput,
     WorkoutHistoryOutput,
     WorkoutLogOutput,
+    WorkoutSessionOutput,
     WorkoutSuggestionOutput,
 )
 
@@ -41,12 +46,16 @@ __all__ = [
     "CreateTrainingPlanInput",
     "DeactivateAccountInput",
     "GetNextWorkoutSuggestionInput",
+    "GetProfileByUserIdInput",
+    "GetTrainingPlanInput",
     "HeartRateZoneOutput",
+    "ListTrainingPlansInput",
     "LogWorkoutInput",
     "LoginInput",
     "PerformanceDashboardOutput",
     "RefreshTokenInput",
     "RegisterUserInput",
+    "ScheduleWorkoutSessionInput",
     "TrainingPlanOutput",
     "UpdateHeartRateDataInput",
     "UserOutput",
@@ -55,5 +64,6 @@ __all__ = [
     "ViewWorkoutHistoryInput",
     "WorkoutHistoryOutput",
     "WorkoutLogOutput",
+    "WorkoutSessionOutput",
     "WorkoutSuggestionOutput",
 ]

@@ -23,8 +23,8 @@ class HeartRateZone:
     max_bpm: int
 
     def __post_init__(self) -> None:
-        if self.min_bpm < 0:
-            raise ValueError("min_bpm cannot be negative")
+        if self.min_bpm <= 0:
+            raise ValueError("min_bpm must be positive")
         if self.max_bpm <= self.min_bpm:
             raise ValueError("max_bpm must be greater than min_bpm")
 
